@@ -283,21 +283,21 @@ jobs:
           RELEASE_COMMIT_TEMPLATE="chore(release): bump version to {version}"  # default
 
           if [ -f "$CONFIG_FILE" ]; then
-            # Test Maven path extraction
+            # Test Maven path extraction (using improved parsing)
             if grep -q '"maven"' "$CONFIG_FILE"; then
-              MAVEN_PATH=$(grep -A2 '"maven"' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path": "\([^"]*\)".*/\1/' || echo "")
+              MAVEN_PATH=$(grep -o '"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
               [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
             fi
 
-            # Test Node.js path extraction
+            # Test Node.js path extraction (using improved parsing)
             if grep -q '"nodejs"' "$CONFIG_FILE"; then
-              NODEJS_PATH=$(grep -A2 '"nodejs"' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path": "\([^"]*\)".*/\1/' || echo "")
+              NODEJS_PATH=$(grep -o '"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
               [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
             fi
 
-            # Test commit template extraction
+            # Test commit template extraction (using improved parsing)
             if grep -q '"releaseTemplate"' "$CONFIG_FILE"; then
-              RELEASE_TEMPLATE=$(grep '"releaseTemplate"' "$CONFIG_FILE" | sed 's/.*"releaseTemplate": "\([^"]*\)".*/\1/' || echo "")
+              RELEASE_TEMPLATE=$(grep -o '"releaseTemplate"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"releaseTemplate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
               [ -n "$RELEASE_TEMPLATE" ] && RELEASE_COMMIT_TEMPLATE="$RELEASE_TEMPLATE"
             fi
           fi
@@ -336,10 +336,10 @@ jobs:
           BACKEND_FILE="pom.xml"  # default
           FRONTEND_FILE="package.json"  # default
 
-          # Apply config
+          # Apply config (using improved parsing)
           if [ -f "$CONFIG_FILE" ]; then
-            MAVEN_PATH=$(grep -A2 '"maven"' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path": "\([^"]*\)".*/\1/' || echo "")
-            NODEJS_PATH=$(grep -A2 '"nodejs"' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path": "\([^"]*\)".*/\1/' || echo "")
+            MAVEN_PATH=$(grep -o '"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
+            NODEJS_PATH=$(grep -o '"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
             [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
             [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
           fi

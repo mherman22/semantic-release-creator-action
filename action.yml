@@ -72,19 +72,19 @@ runs:
         if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
           echo "📄 Loading configuration from $CONFIG_FILE"
 
-          # Simple config parsing using grep and sed (more reliable than jq)
+          # Improved config parsing using more robust patterns
           if grep -q '"maven"' "$CONFIG_FILE"; then
-            MAVEN_PATH=$(grep -A2 '"maven"' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path": "\([^"]*\)".*/\1/' || echo "")
+            MAVEN_PATH=$(grep -o '"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
             [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
           fi
 
           if grep -q '"nodejs"' "$CONFIG_FILE"; then
-            NODEJS_PATH=$(grep -A2 '"nodejs"' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path": "\([^"]*\)".*/\1/' || echo "")
+            NODEJS_PATH=$(grep -o '"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
             [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
           fi
 
           if grep -q '"releaseTemplate"' "$CONFIG_FILE"; then
-            RELEASE_TEMPLATE=$(grep '"releaseTemplate"' "$CONFIG_FILE" | sed 's/.*"releaseTemplate": "\([^"]*\)".*/\1/' || echo "")
+            RELEASE_TEMPLATE=$(grep -o '"releaseTemplate"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"releaseTemplate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
             [ -n "$RELEASE_TEMPLATE" ] && RELEASE_COMMIT_TEMPLATE="$RELEASE_TEMPLATE"
           fi
 
