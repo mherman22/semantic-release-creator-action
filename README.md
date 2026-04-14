@@ -1,4 +1,5 @@
 # Semantic Release Creator Action
+[![CI](https://github.com/mherman22/semantic-release-creator-action/actions/workflows/ci.yml/badge.svg)](https://github.com/mherman22/semantic-release-creator-action/actions/workflows/ci.yml) [![Simple Test Suite](https://github.com/mherman22/semantic-release-creator-action/actions/workflows/test.yml/badge.svg)](https://github.com/mherman22/semantic-release-creator-action/actions/workflows/test.yml) [![Release](https://github.com/mherman22/semantic-release-creator-action/actions/workflows/release.yml/badge.svg)](https://github.com/mherman22/semantic-release-creator-action/actions/workflows/release.yml)
 
 A GitHub Action that handles Git operations and GitHub release publishing for semantic releases. Takes pre-generated changelog content and creates complete releases with proper Git tagging and development cycle management.
 
