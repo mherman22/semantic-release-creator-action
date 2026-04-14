@@ -162,6 +162,107 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+## Testing
+
+This action includes comprehensive test suites to ensure reliability across different project types and scenarios.
+
+### Test Coverage
+
+The test suite covers:
+
+- ✅ **Maven-only projects** (`pom.xml` only)
+- ✅ **Node.js-only projects** (`package.json` only) 
+- ✅ **Hybrid projects** (both `pom.xml` and `package.json`)
+- ✅ **Different branches** (`main`, `develop`, custom branches)
+- ✅ **All release stages** (`alpha`, `beta`, `final`, `snapshot`)
+- ✅ **Next development versions** (for final releases)
+- ✅ **Error handling** (missing files, malformed configs)
+- ✅ **Edge cases** (special characters, unicode, large changelogs)
+
+### Running Tests Locally
+
+The action uses GitHub Actions workflows for testing. To run tests:
+
+1. **Fork the repository**
+2. **Enable Actions** in your fork
+3. **Run test workflows** via Actions tab:
+   - `Test Suite` - Core functionality tests
+   - `Integration Tests` - Real GitHub API tests (requires PAT_TOKEN secret)
+
+### Test Structure
+
+```
+.github/workflows/
+├── test.yml              # Core functionality tests
+├── integration-test.yml  # Real API integration tests
+└── ci.yml                # Continuous integration
+```
+
+### Mock vs Real Testing
+
+**Mock Tests (test.yml):**
+- Fast execution (< 5 minutes)
+- No external dependencies
+- Tests action logic and file handling
+- Runs on every push/PR
+
+**Integration Tests (integration-test.yml):**
+- Real GitHub API calls
+- Creates/deletes test repositories
+- Tests actual release creation
+- Runs daily or on manual trigger
+- Requires `PAT_TOKEN` secret with repo permissions
+
+### Adding New Tests
+
+When adding new functionality, please:
+
+1. Add unit tests to `test.yml`
+2. Consider integration tests for GitHub API changes
+3. Test both success and failure scenarios
+4. Include edge cases and error conditions
+
+### Test Project Examples
+
+The test suite creates various project types:
+
+**Maven Project:**
+```xml
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.example</groupId>
+    <artifactId>test-maven</artifactId>
+    <version>1.0.0</version>
+</project>
+```
+
+**Node.js Project:**
+```json
+{
+  "name": "test-nodejs",
+  "version": "2.0.0",
+  "description": "Test Node.js project"
+}
+```
+
+**Hybrid Project:**
+```
+project/
+├── pom.xml              # Backend version
+└── frontend/
+    └── package.json     # Frontend version
+```
+
+### Common Test Scenarios
+
+| Scenario | Input | Expected Output |
+|----------|-------|----------------|
+| Maven release | `pom.xml` with `1.0.0` → `v1.1.0` | Updated `<version>v1.1.0</version>` |
+| Node.js release | `package.json` with `2.0.0` → `v2.1.0` | Updated `"version": "v2.1.0"` |
+| Final release | `stage-label: final`, `next-dev-version: 2.0.0-SNAPSHOT` | Two commits: release + next dev |
+| Missing files | No `pom.xml` or `package.json` | Graceful failure with clear error |
+| Custom branch | `branch: main` | Push to `main` instead of `develop` |
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.

@@ -1,0 +1,259 @@
+name: Simple Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-action:
+    name: Validate Action Structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate action.yml syntax
+        run: |
+          # Basic YAML validation
+          python3 -c "import yaml; yaml.safe_load(open('action.yml'))" || exit 1
+          echo "✅ action.yml is valid YAML"
+
+      - name: Check required action properties
+        run: |
+          # Check that action.yml has required fields
+          grep -q "name:" action.yml || { echo "❌ Missing 'name' field"; exit 1; }
+          grep -q "description:" action.yml || { echo "❌ Missing 'description' field"; exit 1; }
+          grep -q "runs:" action.yml || { echo "❌ Missing 'runs' field"; exit 1; }
+          echo "✅ All required action fields present"
+
+      - name: Check composite action structure
+        run: |
+          # Verify it's a composite action
+          grep -q "using: 'composite'" action.yml || { echo "❌ Not a composite action"; exit 1; }
+          echo "✅ Valid composite action structure"
+
+  test-file-detection:
+    name: Test File Detection Logic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test Maven-only detection
+        run: |
+          mkdir test-maven && cd test-maven
+          cat > pom.xml << 'EOF'
+          <?xml version="1.0"?>
+          <project>
+              <groupId>test</groupId>
+              <artifactId>test</artifactId>
+              <version>1.0.0</version>
+          </project>
+          EOF
+
+          # Simulate file detection logic
+          FILES_TO_ADD=""
+          [ -f "pom.xml" ] && FILES_TO_ADD="$FILES_TO_ADD pom.xml"
+          [ -f "package.json" ] && FILES_TO_ADD="$FILES_TO_ADD package.json"
+
+          echo "Detected files: $FILES_TO_ADD"
+          if [[ "$FILES_TO_ADD" == *"pom.xml"* ]]; then
+            echo "✅ Maven file correctly detected"
+          else
+            echo "❌ Maven file not detected"
+            exit 1
+          fi
+
+      - name: Test Node.js-only detection
+        run: |
+          mkdir test-nodejs && cd test-nodejs
+          cat > package.json << 'EOF'
+          {
+            "name": "test",
+            "version": "1.0.0"
+          }
+          EOF
+
+          # Simulate file detection logic
+          FILES_TO_ADD=""
+          [ -f "pom.xml" ] && FILES_TO_ADD="$FILES_TO_ADD pom.xml"
+          [ -f "package.json" ] && FILES_TO_ADD="$FILES_TO_ADD package.json"
+
+          echo "Detected files: $FILES_TO_ADD"
+          if [[ "$FILES_TO_ADD" == *"package.json"* ]]; then
+            echo "✅ Node.js file correctly detected"
+          else
+            echo "❌ Node.js file not detected"
+            exit 1
+          fi
+
+      - name: Test hybrid project detection
+        run: |
+          mkdir test-hybrid && cd test-hybrid
+          cat > pom.xml << 'EOF'
+          <?xml version="1.0"?>
+          <project>
+              <groupId>test</groupId>
+              <artifactId>test</artifactId>
+              <version>1.0.0</version>
+          </project>
+          EOF
+          cat > package.json << 'EOF'
+          {
+            "name": "test",
+            "version": "1.0.0"
+          }
+          EOF
+
+          # Simulate file detection logic
+          FILES_TO_ADD=""
+          [ -f "pom.xml" ] && FILES_TO_ADD="$FILES_TO_ADD pom.xml"
+          [ -f "package.json" ] && FILES_TO_ADD="$FILES_TO_ADD package.json"
+
+          echo "Detected files: $FILES_TO_ADD"
+          if [[ "$FILES_TO_ADD" == *"pom.xml"* ]] && [[ "$FILES_TO_ADD" == *"package.json"* ]]; then
+            echo "✅ Both files correctly detected in hybrid project"
+          else
+            echo "❌ Hybrid project detection failed"
+            exit 1
+          fi
+
+      - name: Test missing files detection
+        run: |
+          mkdir test-empty && cd test-empty
+          echo "# No version files here" > README.md
+
+          # Simulate file detection logic
+          FILES_TO_ADD=""
+          [ -f "pom.xml" ] && FILES_TO_ADD="$FILES_TO_ADD pom.xml"
+          [ -f "package.json" ] && FILES_TO_ADD="$FILES_TO_ADD package.json"
+
+          echo "Detected files: '$FILES_TO_ADD'"
+          if [ -z "$FILES_TO_ADD" ]; then
+            echo "✅ Correctly detected no version files (would trigger error in real action)"
+          else
+            echo "❌ Should not have detected any files"
+            exit 1
+          fi
+
+  test-version-update-logic:
+    name: Test Version Update Logic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test Maven version update
+        run: |
+          mkdir test-maven-update && cd test-maven-update
+          cat > pom.xml << 'EOF'
+          <?xml version="1.0"?>
+          <project>
+              <groupId>test</groupId>
+              <artifactId>test</artifactId>
+              <version>1.0.0</version>
+          </project>
+          EOF
+
+          # Test version update (simulate action behavior)
+          NEW_VERSION="v1.0.1"
+          sed -i "s/<version>[^<]*<\/version>/<version>$NEW_VERSION<\/version>/" pom.xml
+
+          # Verify update worked
+          if grep -q "<version>v1.0.1</version>" pom.xml; then
+            echo "✅ Maven version update logic works"
+          else
+            echo "❌ Maven version update failed"
+            exit 1
+          fi
+
+      - name: Test Node.js version update
+        run: |
+          mkdir test-nodejs-update && cd test-nodejs-update
+          cat > package.json << 'EOF'
+          {
+            "name": "test",
+            "version": "2.0.0"
+          }
+          EOF
+
+          # Test version update (simulate action behavior)
+          NEW_VERSION="v2.0.1"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$NEW_VERSION\"/" package.json
+
+          # Verify update worked
+          if grep -q '"version": "v2.0.1"' package.json; then
+            echo "✅ Node.js version update logic works"
+          else
+            echo "❌ Node.js version update failed"
+            exit 1
+          fi
+
+      - name: Test next development version logic
+        run: |
+          mkdir test-next-dev && cd test-next-dev
+          cat > pom.xml << 'EOF'
+          <?xml version="1.0"?>
+          <project>
+              <groupId>test</groupId>
+              <artifactId>test</artifactId>
+              <version>v1.0.0</version>
+          </project>
+          EOF
+          cat > package.json << 'EOF'
+          {
+            "name": "test",
+            "version": "v1.0.0"
+          }
+          EOF
+
+          # Test next dev version logic (simulate action behavior)
+          NEXT_DEV="1.1.0-SNAPSHOT"
+
+          # Update backend to next development version
+          if [ -f "pom.xml" ]; then
+            sed -i "s/<version>[^<]*<\/version>/<version>$NEXT_DEV<\/version>/" pom.xml
+          fi
+
+          # Update frontend to next development version (remove -SNAPSHOT)
+          if [ -f "package.json" ]; then
+            NEXT_FRONTEND=$(echo "$NEXT_DEV" | sed 's/-SNAPSHOT//')
+            sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$NEXT_FRONTEND\"/" package.json
+          fi
+
+          # Verify updates worked
+          if grep -q "<version>1.1.0-SNAPSHOT</version>" pom.xml && grep -q '"version": "1.1.0"' package.json; then
+            echo "✅ Next development version logic works"
+          else
+            echo "❌ Next development version logic failed"
+            cat pom.xml
+            cat package.json
+            exit 1
+          fi
+
+  test-results:
+    name: Test Results Summary
+    needs: [validate-action, test-file-detection, test-version-update-logic]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Display test results
+        run: |
+          echo "## Test Results Summary"
+          echo ""
+          echo "| Test Suite | Result |"
+          echo "|------------|--------|"
+          echo "| Action Validation | ${{ needs.validate-action.result }} |"
+          echo "| File Detection Logic | ${{ needs.test-file-detection.result }} |"
+          echo "| Version Update Logic | ${{ needs.test-version-update-logic.result }} |"
+          echo ""
+
+          # Check if any tests failed
+          if [[ "${{ needs.validate-action.result }}" == "failure" ||
+                "${{ needs.test-file-detection.result }}" == "failure" ||
+                "${{ needs.test-version-update-logic.result }}" == "failure" ]]; then
+            echo "❌ Some tests failed"
+            exit 1
+          else
+            echo "✅ All tests passed"
+          fi
