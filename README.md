@@ -50,6 +50,19 @@ A GitHub Action that handles Git operations and GitHub release publishing for se
     github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+### With Custom Branch (for repositories using 'main' branch)
+
+```yaml
+- name: Create release
+  uses: mherman22/create-semantic-release-action@v1
+  with:
+    release-tag: ${{ steps.bump.outputs.release-tag }}
+    changelog: ${{ steps.changelog.outputs.release-notes }}
+    stage-label: ${{ steps.bump.outputs.stage-label }}
+    branch: 'main'  # ✅ Push to main instead of develop
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
 ## Inputs
 
 | Input | Description | Required | Default |
@@ -62,6 +75,7 @@ A GitHub Action that handles Git operations and GitHub release publishing for se
 | `repository` | Repository name (owner/repo) | No | `${{ github.repository }}` |
 | `backend-file` | Path to Maven pom.xml file | No | `pom.xml` |
 | `frontend-file` | Path to Node.js package.json file | No | `frontend/package.json` |
+| `branch` | Branch to push changes to | No | `develop` |
 
 ## Outputs
 

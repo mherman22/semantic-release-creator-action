@@ -32,6 +32,10 @@ inputs:
   github-token:
     description: 'GitHub token for creating releases'
     required: true
+  branch:
+    description: 'Branch to push changes to'
+    required: false
+    default: 'develop'
 
 outputs:
   release-url:
@@ -78,7 +82,7 @@ runs:
         # Create and push tag
         git tag -d "$RELEASE_TAG" 2>/dev/null || true
         git tag -a "$RELEASE_TAG" -m "Release $RELEASE_TAG"
-        git push origin develop "$RELEASE_TAG"
+        git push origin ${{ inputs.branch }} "$RELEASE_TAG"
 
         echo "Created and pushed tag: $RELEASE_TAG"
 
@@ -105,7 +109,7 @@ runs:
         if [ -n "$DEV_FILES_TO_ADD" ]; then
           git add $DEV_FILES_TO_ADD
           git commit -m "chore: prepare next development iteration $NEXT_DEV"
-          git push origin develop
+          git push origin ${{ inputs.branch }}
           echo "✅ Committed next development version to: $DEV_FILES_TO_ADD"
         else
           echo "⚠️ No files to update for next development version"
