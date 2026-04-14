@@ -72,16 +72,24 @@ runs:
         if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
           echo "📄 Loading configuration from $CONFIG_FILE"
 
-          # Simple and reliable multiline JSON parsing
+          # Robust JSON parsing that handles both compact and formatted JSON
           if grep -q '"maven"' "$CONFIG_FILE"; then
-            # Find maven section and extract path from the following lines
-            MAVEN_PATH=$(sed -n '/"maven"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            # Extract maven path using a more flexible approach
+            MAVEN_PATH=$(grep -A10 '"maven"' "$CONFIG_FILE" | grep '"path"' | head -1 | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            if [ -z "$MAVEN_PATH" ]; then
+              # Fallback: try single-line compact JSON extraction
+              MAVEN_PATH=$(grep '"maven"' "$CONFIG_FILE" | sed 's/.*"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+            fi
             [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
           fi
 
           if grep -q '"nodejs"' "$CONFIG_FILE"; then
-            # Find nodejs section and extract path from the following lines
-            NODEJS_PATH=$(sed -n '/"nodejs"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            # Extract nodejs path using a more flexible approach
+            NODEJS_PATH=$(grep -A10 '"nodejs"' "$CONFIG_FILE" | grep '"path"' | head -1 | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            if [ -z "$NODEJS_PATH" ]; then
+              # Fallback: try single-line compact JSON extraction
+              NODEJS_PATH=$(grep '"nodejs"' "$CONFIG_FILE" | sed 's/.*"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+            fi
             [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
           fi
 

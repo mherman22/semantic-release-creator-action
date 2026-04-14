@@ -287,18 +287,26 @@ jobs:
             cat "$CONFIG_FILE"
             echo ""
 
-            # Test Maven path extraction (using simpler multiline approach)
+            # Test Maven path extraction (using flexible approach)
             if grep -q '"maven"' "$CONFIG_FILE"; then
-              # Find maven section and extract path from next few lines
-              MAVEN_PATH=$(sed -n '/"maven"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              # Try multiline approach first
+              MAVEN_PATH=$(grep -A10 '"maven"' "$CONFIG_FILE" | grep '"path"' | head -1 | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              if [ -z "$MAVEN_PATH" ]; then
+                # Fallback to single-line compact JSON
+                MAVEN_PATH=$(grep '"maven"' "$CONFIG_FILE" | sed 's/.*"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+              fi
               echo "🔍 Maven path extracted: '$MAVEN_PATH'"
               [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
             fi
 
-            # Test Node.js path extraction (using simpler multiline approach)
+            # Test Node.js path extraction (using flexible approach)
             if grep -q '"nodejs"' "$CONFIG_FILE"; then
-              # Find nodejs section and extract path from next few lines
-              NODEJS_PATH=$(sed -n '/"nodejs"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              # Try multiline approach first
+              NODEJS_PATH=$(grep -A10 '"nodejs"' "$CONFIG_FILE" | grep '"path"' | head -1 | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              if [ -z "$NODEJS_PATH" ]; then
+                # Fallback to single-line compact JSON
+                NODEJS_PATH=$(grep '"nodejs"' "$CONFIG_FILE" | sed 's/.*"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+              fi
               echo "🔍 Node.js path extracted: '$NODEJS_PATH'"
               [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
             fi
@@ -347,12 +355,32 @@ jobs:
           BACKEND_FILE="pom.xml"  # default
           FRONTEND_FILE="package.json"  # default
 
-          # Apply config (using improved multiline parsing)
+          # Apply config (using improved multiline parsing with debugging)
           if [ -f "$CONFIG_FILE" ]; then
-            MAVEN_PATH=$(sed -n '/"maven"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-            NODEJS_PATH=$(sed -n '/"nodejs"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            echo "🔍 Config file contents:"
+            cat "$CONFIG_FILE"
+            echo ""
+
+            echo "🔍 Extracting Maven path..."
+            MAVEN_PATH=$(grep -A10 '"maven"' "$CONFIG_FILE" | grep '"path"' | head -1 | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            if [ -z "$MAVEN_PATH" ]; then
+              echo "🔍 Trying single-line Maven extraction..."
+              MAVEN_PATH=$(grep '"maven"' "$CONFIG_FILE" | sed 's/.*"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+            fi
+            echo "Extracted Maven path: '$MAVEN_PATH'"
+
+            echo "🔍 Extracting Node.js path..."
+            NODEJS_PATH=$(grep -A10 '"nodejs"' "$CONFIG_FILE" | grep '"path"' | head -1 | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            if [ -z "$NODEJS_PATH" ]; then
+              echo "🔍 Trying single-line Node.js extraction..."
+              NODEJS_PATH=$(grep '"nodejs"' "$CONFIG_FILE" | sed 's/.*"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || echo "")
+            fi
+            echo "Extracted Node.js path: '$NODEJS_PATH'"
+
             [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
             [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
+
+            echo "🔍 Final file paths: BACKEND_FILE='$BACKEND_FILE', FRONTEND_FILE='$FRONTEND_FILE'"
           fi
 
           # Test detection logic
