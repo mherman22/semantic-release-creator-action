@@ -283,23 +283,34 @@ jobs:
           RELEASE_COMMIT_TEMPLATE="chore(release): bump version to {version}"  # default
 
           if [ -f "$CONFIG_FILE" ]; then
-            # Test Maven path extraction (using improved parsing)
+            echo "🔍 Debugging config file contents:"
+            cat "$CONFIG_FILE"
+            echo ""
+
+            # Test Maven path extraction (using simpler multiline approach)
             if grep -q '"maven"' "$CONFIG_FILE"; then
-              MAVEN_PATH=$(grep -o '"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
+              # Find maven section and extract path from next few lines
+              MAVEN_PATH=$(sed -n '/"maven"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              echo "🔍 Maven path extracted: '$MAVEN_PATH'"
               [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
             fi
 
-            # Test Node.js path extraction (using improved parsing)
+            # Test Node.js path extraction (using simpler multiline approach)
             if grep -q '"nodejs"' "$CONFIG_FILE"; then
-              NODEJS_PATH=$(grep -o '"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
+              # Find nodejs section and extract path from next few lines
+              NODEJS_PATH=$(sed -n '/"nodejs"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              echo "🔍 Node.js path extracted: '$NODEJS_PATH'"
               [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
             fi
 
-            # Test commit template extraction (using improved parsing)
+            # Test commit template extraction (simple single line approach)
             if grep -q '"releaseTemplate"' "$CONFIG_FILE"; then
-              RELEASE_TEMPLATE=$(grep -o '"releaseTemplate"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"releaseTemplate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
+              RELEASE_TEMPLATE=$(grep '"releaseTemplate"' "$CONFIG_FILE" | sed 's/.*"releaseTemplate"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+              echo "🔍 Release template extracted: '$RELEASE_TEMPLATE'"
               [ -n "$RELEASE_TEMPLATE" ] && RELEASE_COMMIT_TEMPLATE="$RELEASE_TEMPLATE"
             fi
+
+            echo "🔍 Final values: BACKEND_FILE='$BACKEND_FILE', FRONTEND_FILE='$FRONTEND_FILE', TEMPLATE='$RELEASE_COMMIT_TEMPLATE'"
           fi
 
           # Verify config was loaded correctly
@@ -336,10 +347,10 @@ jobs:
           BACKEND_FILE="pom.xml"  # default
           FRONTEND_FILE="package.json"  # default
 
-          # Apply config (using improved parsing)
+          # Apply config (using improved multiline parsing)
           if [ -f "$CONFIG_FILE" ]; then
-            MAVEN_PATH=$(grep -o '"maven"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
-            NODEJS_PATH=$(grep -o '"nodejs"[^}]*"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "")
+            MAVEN_PATH=$(sed -n '/"maven"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+            NODEJS_PATH=$(sed -n '/"nodejs"/,/}/p' "$CONFIG_FILE" | grep '"path"' | sed 's/.*"path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
             [ -n "$MAVEN_PATH" ] && BACKEND_FILE="$MAVEN_PATH"
             [ -n "$NODEJS_PATH" ] && FRONTEND_FILE="$NODEJS_PATH"
           fi
