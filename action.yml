@@ -93,7 +93,9 @@ runs:
         NEXT_DEV="${{ inputs.next-dev-version }}"
 
         # Update backend to next development version
-        sed -i "s/<version>[^<]*<\/version>/<version>$NEXT_DEV<\/version>/" ${{ inputs.backend-file }}
+        if [ -f "${{ inputs.backend-file }}" ]; then
+          sed -i "s/<version>[^<]*<\/version>/<version>$NEXT_DEV<\/version>/" ${{ inputs.backend-file }}
+        fi
 
         # Update frontend to next development version (remove -SNAPSHOT)
         if [ -f "${{ inputs.frontend-file }}" ]; then
